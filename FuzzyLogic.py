@@ -2,9 +2,30 @@ from typing import Callable, Tuple, List
 from functools import reduce
 import matplotlib.pyplot as plt
 
+class FuzzySet:
+    def __init__(self,
+                 membershipFunction: Callable[[float],float],
+                 discreteBounds:     Tuple[float,float] = (0,1),
+                 discreteStepLen:    float = 0.01):
+        self.membership = membershipFunction
+        self.bounds = discreteBounds
+        self.discreteStep = discreteStepLen
+
+    def membership(self, value: float) -> float:
+        # The membership function is defined on instantiation
+        pass
+
+class SingletonFuzzySet(FuzzySet):
+    def __init__(self, num: float):
+        def membershipFunction(x: float):
+            if x == num:
+                return 1.0
+            else:
+                return 0.0
+        FuzzySet.__init__(self, membershipFunction, (num,num), 0)
+        self.value = num
+
 # These functions create membership functions
-# e.g. triangle(0, 1, 2) creates a triangle membership function
-# Functional programing lends itself well here
 def triangle(left:  float,
              peak:  float,
              right: float) -> Callable[[float], float]:
@@ -36,55 +57,28 @@ def trapezoid(left:  float,
             return slope * (value - right)
     return trapezoidFunc
 
-# Just a base class for fuzzy sets
-# Python doesn't really have interfaces, so I'm making do with this
-class FuzzySet:
-    def membership(value: float) -> float:
-        print('Error, not defined')
-    bounds = (0,1)
-    discreteStep = 0.01
-
-# Creates a fuzzy set with the given membership function
-def createFuzzySet(membershipFunc:  Callable[[float],float],
-                   discreteBounds:  Tuple[float, float] = (0,1),
-                   discreteStepLen: float = 0.01) -> FuzzySet:
-    class NewFuzzySet(FuzzySet):
-        membership = membershipFunc
-        bounds = discreteBounds
-        discreteStep = discreteStepLen
-    return NewFuzzySet
-
-# Creates a singleton fuzzy set
-def createSingleton(value: float) -> FuzzySet:
-    def membership(x: float) -> float:
-        if x == value: return 1.0
-        else: return 0.0
-    bounds = (value, value)
-    return createFuzzySet(membership, bounds)
-
 # Operators for fuzzy sets
 def fuzzyAnd(x: FuzzySet, y: FuzzySet) -> FuzzySet:
     def newMembership(val: float) -> float:
         return min(x.membership(val), y.membership(val))
     bounds = (min(x.bounds[0], y.bounds[0]), max(x.bounds[1], y.bounds[1]))
-    return createFuzzySet(newMembership, bounds)
+    return FuzzySet(newMembership, bounds)
 
 def fuzzyOr(x: FuzzySet, y: FuzzySet) -> FuzzySet:
     def newMembership(val: float) -> float:
         return max(x.membership(val), y.membership(val))
     bounds = (min(x.bounds[0], y.bounds[0]), max(x.bounds[1], y.bounds[1]))
-    return createFuzzySet(newMembership, bounds)
+    return FuzzySet(newMembership, bounds)
 
 def fuzzyNot(x: FuzzySet) -> FuzzySet:
     def newMembership(value: float) -> float:
         return 1 - x.membership(value)
-    return createFuzzySet(newMembership, x.bounds)
+    return FuzzySet(newMembership, x.bounds)
 
-# Fuzzy inference
 def fuzzyInference(antecedents: List[FuzzySet],
                    consequent:  FuzzySet,
-                   facts:       List[FuzzySet]) -> FuzzySet:
-    """ Fuzzy inference for multiple antecedents and facts using correlation min.
+                   facts:       List[SingletonFuzzySet]) -> FuzzySet:
+    """Fuzzy inference for multiple antecedents and facts using correlation min.
 
     Example: Rule: If A is U and B is V, then C is X
              Fact: A is U' and B is V'
