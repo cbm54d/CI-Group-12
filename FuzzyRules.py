@@ -13,26 +13,36 @@ import FuzzyLogic as FL
 # Slow
 # Fast
 # Left
+# SlightLeft
 # Right
+# SlightRight
+# InFront
+# Behind
 
 # Rules for Speed:
-# 1) If (OD is Far) and (GoalD is Far) then Speed is Fast
+# 1) If (OD is Not Close) and (GoalD is Far) then Speed is Fast
 # 2) If (OD is Close) then Speed is Slow
 # 3) If If (GoalD is Close) then Speed is Slow
 #
 # Rules for Direction:
-# 4) If (OD is Far) and (GoalA is Right) then Direction is Right
-# 5) If (OD is Far) and (GoalA is Left) then Direction is Left
-# 6) If (OD is Close) and (OA is Right) then Direction is Left
-# 7) If (OD is Close) and (OA is Left) then Direction is Right
+# 4) If (OD is Not Close) and (GoalA is InFront) then Direction is InFront
+# 5) If (OD is Not Close) and (GoalA is Right) then Direction is slightRight
+# 6) If (OD is Not Close) and (GoalA is Left) then Direction is slightLeft
+# 7) If (OD is Close) and (OA is Left) and (OA is InFront) then Direction is Right
+# 8) If (OD is Close) and (OA is Right) and (OA is InFront) then Direction is Left
+# 9) If (OD is Close) and (OA is InFront) then Direction is Left
 
 # Actual definitions of the Fuzzy Sets
-close = FL.FuzzySet(FL.trapezoid(0, 0, 0.75, 2))
-far   = FL.FuzzySet(FL.trapezoid(1.5, 3, 50, 50))
+close = FL.FuzzySet(FL.trapezoid(0, 0, 0.25, 1))
+far   = FL.FuzzySet(FL.trapezoid(.75, 1, 10, 10))
 slow  = FL.FuzzySet(FL.trapezoid(0, 0, .25, 1), (0,2))
 fast  = FL.FuzzySet(FL.trapezoid(.75, 1.5, 2, 2), (0,2))
-left  = FL.FuzzySet(FL.triangle(-180, -90, 0), (-180,180))
-right = FL.FuzzySet(FL.triangle(0, 90, 180), (-180,180))
+left  = FL.FuzzySet(FL.triangle(-135, -90, -45), (-180,180))
+slightLeft = FL.FuzzySet(FL.triangle(-90,-45,0), (-180,180))
+right = FL.FuzzySet(FL.triangle(45, 90, 135), (-180,180))
+slightRight = FL.FuzzySet(FL.triangle(0,45,90), (-180,180))
+inFront = FL.FuzzySet(FL.triangle(-90, 0, 90), (-180,180))
+behind = FL.fuzzyNot(FL.fuzzyAnd(FL.fuzzyAnd(left,right),inFront))
 
 class Rule:
     def __init__(self, antecedents, consequent, name):
@@ -92,12 +102,14 @@ class RuleBook:
             defuzzified[aggregate] = FL.defuzzify(aggregation[aggregate])
         return defuzzified
 
-rules = [Rule([(far, 'objectDistance'), (far, 'goalDistance')], fast, 'speed'),
+rules = [Rule([(FL.fuzzyNot(close), 'objectDistance'), (far, 'goalDistance')], fast, 'speed'),
          Rule([(close, 'objectDistance')], slow, 'speed'),
          Rule([(close, 'goalDistance')], slow, 'speed'),
-         Rule([(far, 'objectDistance'), (right, 'goalAngle')], right, 'direction'),
-         Rule([(far, 'objectDistance'), (left, 'goalAngle')], left, 'direction'),
-         Rule([(close, 'objectDistance'), (right, 'objectAngle')], left, 'direction'),
-         Rule([(close, 'objectDistance'), (left, 'objectAngle')], right, 'direction')]
+         Rule([(FL.fuzzyNot(close), 'objectDistance'), (inFront, 'goalAngle')], inFront, 'direction'),
+         Rule([(FL.fuzzyNot(close), 'objectDistance'), (right, 'goalAngle')], slightRight, 'direction'),
+         Rule([(FL.fuzzyNot(close), 'objectDistance'), (left, 'goalAngle')], slightLeft, 'direction'),
+         Rule([(close, 'objectDistance'), (left, 'objectAngle'), (inFront, 'objectAngle')], right, 'direction'),
+         Rule([(close, 'objectDistance'), (right, 'objectAngle'), (inFront, 'objectAngle')], left, 'direction'),
+         Rule([(close, 'objectDistance'), (inFront, 'objectAngle')], left, 'direction')]
 
 rulebook = RuleBook(*rules)
