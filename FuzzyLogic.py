@@ -117,33 +117,6 @@ def showFuzzySet(fuzzySet: FuzzySet) -> None:
     plt.ylim([0,1.1])
     plt.show()
 
-def showFuzzyInf(antecedent: FuzzySet, consequent: FuzzySet, fact: FuzzySet) -> None:
-    x = list()
-    ay = list()
-    cy = list()
-    fy = list()
-    infY = list()
-    Inf = fuzzyInference([antecedent], consequent, [fact])
-    i = Inf.bounds[0]
-    while i <= Inf.bounds[1]:
-        x.append(i)
-        ay.append(antecedent.membership(i))
-        cy.append(consequent.membership(i))
-        fy.append(fact.membership(i))
-        infY.append(Inf.membership(i))
-        i += Inf.discreteStep
-    plt.subplot(1, 2, 1)
-    plt.ylim([0,1.1])
-    plt.plot(x, ay, label = 'Antecedent')
-    plt.plot(x, cy, label = 'Consequent')
-    plt.plot(x, fy, label = 'Fact', linestyle = 'dashed')
-    plt.legend()
-    plt.subplot(1, 2, 2)
-    plt.ylim([0,1.1])
-    plt.plot(x, infY, label = 'Inference')
-    plt.legend()
-    plt.show()
-
 # Performs centroid defuzzification
 def defuzzify(fuzzySet: FuzzySet) -> float:
     numerator = 0
