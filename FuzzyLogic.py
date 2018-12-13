@@ -97,13 +97,13 @@ def fuzzyAggregationMax(fuzzySets: List[FuzzySet]) -> FuzzySet:
     """Aggregates the fuzzy sets with max"""
     def membershipFunction(x: float):
         return max(map((lambda s: s.membership(x)), fuzzySets))
-    return FuzzySet(membershipFunction)
+    return FuzzySet(membershipFunction, fuzzySets[0].bounds)
 
 def fuzzyAggregationSum(fuzzySets: List[FuzzySet]) -> FuzzySet:
     """Aggregates the fuzzy sets with a bounded sum"""
     def membershipFunction(x: float):
         return min(sum(map((lambda s: s.membership(x)), fuzzySets)), 1)
-    return FuzzySet(membershipFunction)
+    return FuzzySet(membershipFunction, fuzzySets[0].bounds)
 
 def showFuzzySet(fuzzySet: FuzzySet) -> None:
     x = list()
@@ -127,4 +127,6 @@ def defuzzify(fuzzySet: FuzzySet) -> float:
         numerator += y * membership
         denominator += membership
         y += fuzzySet.discreteStep
+    if denominator == 0:
+        return 0
     return numerator / denominator
