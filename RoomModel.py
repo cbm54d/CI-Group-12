@@ -30,6 +30,9 @@ class StateModel:
                 self.robotPathY = []            # Same as above but for the y coordinates
                 self.robotPathA = []            # Same as above but for the angle representing the direction the robot is facing at each step (in degrees)
 
+                # Setup for display
+                self.fig, self.axe = plt.subplots()
+
         def updateRobot(self, deltaAngle, deltaDist):           # Updates robot based on values passed from back-end
                 self.robotPathX.append(self.robotX)                                                     # Records the location and angle of the robot before moving it
                 self.robotPathY.append(self.robotY)
@@ -51,33 +54,18 @@ class StateModel:
         def displayRoom(self):          # Creates a graphical display of the room's state at the time it is called
                 # I found this method for graphing multiple line segments here:
                 # https://stackoverflow.com/questions/21352580/matplotlib-plotting-numerous-disconnected-line-segments-with-different-colors
-                lines = []
-                for wall in self.walls:
-                        lines.append(wall.all)
                 #print lines
                 # https://stackoverflow.com/questions/36470343/how-to-draw-a-line-with-matplotlib/36479941
 
 
-                x = [self.robotX, self.robotX+0.2*math.sin(math.radians(self.robotDir))]
-                y = [self.robotY, self.robotY+0.2*math.cos(math.radians(self.robotDir))]
-                c = np.array([(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1)])
-                lc = mc.LineCollection(lines, linewidths=2)
-                goalZone = plt.Circle((self.goalX, self.goalY), self.goalThreshold, color='g')
-                fig, ax = plt.subplots()
-                ax.add_artist(goalZone)
-                ax.plot(x, y)
-                ax.add_collection(lc)
+                #x = [self.robotX, self.robotX+0.2*math.sin(math.radians(self.robotDir))]
+                #y = [self.robotY, self.robotY+0.2*math.cos(math.radians(self.robotDir))]
+                #self.axe.plot(x, y)
                 
-                ax.scatter(self.robotPathX, self.robotPathY, color='grey')
-                ax.scatter(self.robotX, self.robotY, color='blue')
-                ax.scatter(self.goalX, self.goalY, color='green')
+                self.axe.scatter(self.robotX, self.robotY, color='blue')
+                plt.pause(.0001)
 
                 #ax.autoscale()
-                ax.margins(0.1)
-                ax.axis('scaled')
-
-                plt.show()
-
 
         # Okay, let's take a moment to think about how this thing should work GIVEN THAT SOME LINES CAN BE VERTICAL.
         # Vertical lines have an UNDEFINED slope (involves a division by zero), so they cause problems for the program.
@@ -275,6 +263,20 @@ def initialize():
                    #[Wall(1,2,2,3), Wall(3,2,3,3), Wall(3,3,5,3)]
         for wall in walls:
                 stateModel.walls.append(wall)
+
+        # Setup for Display
+        plt.ion()
+        goalZone = plt.Circle((stateModel.goalX, stateModel.goalY), stateModel.goalThreshold, color='g')
+        stateModel.axe.add_artist(goalZone)
+
+        lines = []
+        for wall in stateModel.walls:
+            lines.append(wall.all)
+        lc = mc.LineCollection(lines, linewidths=2)
+        stateModel.axe.add_collection(lc)
+        #stateModel.axe.scatter(self.goalX, self.goalY, color='green')
+        stateModel.axe.margins(0.1)
+        stateModel.axe.axis('scaled')
 
         return stateModel
 
