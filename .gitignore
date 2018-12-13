@@ -1,0 +1,12 @@
+# Ignore everyting
+*
+
+# Allow directories
+!*/
+
+# Whitelist .gitignore
+!.gitignore
+
+# Allowed files
+!*.py
+!*.md
