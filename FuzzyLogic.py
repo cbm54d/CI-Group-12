@@ -88,18 +88,22 @@ def fuzzyInference(antecedents: List[FuzzySet],
     U' and V' are fuzzy sets and the facts. Given this information, we can
     infer a relationship between U' and V' and get X', another fuzzy set.
     """
-    def correlationMin(x: float, y: float) -> float:
-        m = reduce(min, map((lambda fuzzySet: fuzzySet.membership(x)), antecedents))
-        return min(m, consequent.membership(y))
-    def newMembership(y: float) -> float:
-        x = facts[0].bounds[0]
-        h = reduce(min, map((lambda fuzzySet: fuzzySet.membership(x)), facts), correlationMin(x, y))
-        x += facts[0].discreteStep
-        while x <= facts[0].bounds[1]:
-            h = max(h, reduce(min, map((lambda fuzzySet: fuzzySet.membership(x)), facts), correlationMin(x, y)))
-            x += facts[0].discreteStep
-        return h
-    return createFuzzySet(newMembership, consequent.bounds)
+    def membershipFunction(y: float) -> float:
+        ants = [ant.membership(x.value) for (ant,x) in zip(antecedents, facts)]
+        return min(min(ants), consequent.membership(y))
+    return FuzzySet(membershipFunction, consequent.bounds)
+
+def fuzzyAggregationMax(fuzzySets: List[FuzzySet]) -> FuzzySet:
+    """Aggregates the fuzzy sets with max"""
+    def membershipFunction(x: float):
+        return max(map((lambda s: s.membership(x)), fuzzySets))
+    return FuzzySet(membershipFunction)
+
+def fuzzyAggregationSum(fuzzySets: List[FuzzySet]) -> FuzzySet:
+    """Aggregates the fuzzy sets with a bounded sum"""
+    def membershipFunction(x: float):
+        return min(sum(map((lambda s: s.membership(x)), fuzzySets)), 1)
+    return FuzzySet(membershipFunction)
 
 def showFuzzySet(fuzzySet: FuzzySet) -> None:
     x = list()
