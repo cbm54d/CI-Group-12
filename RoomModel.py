@@ -191,7 +191,7 @@ class StateModel:
                 dx = self.goalX - self.robotX
                 dy = self.goalY - self.robotY
                 goalDist = math.sqrt(dx**2 + dy**2)
-                goalAngle = math.degrees(math.atan(dy/dx))
+                goalAngle = math.degrees(math.atan(dy/dx)) - self.robotDir
                 return (goalDist, goalAngle)
 
 # The function below comes from https://stackoverflow.com/questions/3252194/numpy-and-line-intersections
