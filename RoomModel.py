@@ -135,13 +135,13 @@ class StateModel:
                                         robotPerpToWall = True
 
                         # Calculate distance from robot to nearest point along wall
-                        if robotPerpToWall:                                                                                     # Case 1: robot is on a perpendicular with the wall
-                                #print("Wall is perpendicular to the robot")                            # CASE 1s: wall with a vertical (undefined) slope
+                        if robotPerpToWall:                                           # Case 1: robot is on a perpendicular with the wall
+                                #print("Wall is perpendicular to the robot")          # CASE 1s: wall with a vertical (undefined) slope
                                 if wall.x1 == wall.x2: 
                                         dist = abs(self.robotX - wall.x1)
                                         angleFromZero = 90 if self.robotX < wall.x1 else 270
 
-                                elif wall.y1 == wall.y2:                                                                # CASE 2s: wall with a horizontal slope
+                                elif wall.y1 == wall.y2:                              # CASE 2s: wall with a horizontal slope
                                         dist = abs(self.robotY - wall.y1)
                                         angleFromZero = 180 if self.robotY > wall.y1 else 0
 
@@ -154,10 +154,16 @@ class StateModel:
                                         dx = nearestPoint[0] - self.robotX
                                         dy = nearestPoint[1] - self.robotY
                                         if dy < 0:
-                                                addFactor = 180
-                                        angleFromZero = addFactor + math.degrees(math.atan(dx / dy))
+                                            addFactor = 180
+                                        if dy == 0:
+                                            if dx < 0:
+                                                angleFromZero = -90
+                                            else:
+                                                angleFromZero = 90
+                                        else:
+                                            angleFromZero = addFactor + math.degrees(math.atan(dx / dy))
 
-                        else:                                                                                                           # Case 2: robot is not on perpendicular with the wall
+                        else:                                                          # Case 2: robot is not on perpendicular with the wall
                                 #print("Wall is not perpendicular to the robot")
                                 dist1 = math.sqrt((self.robotX - wall.x1) ** 2 + (self.robotY - wall.y1) ** 2)
                                 dist2 = math.sqrt((self.robotX - wall.x2) ** 2 + (self.robotY - wall.y2) ** 2)
@@ -175,10 +181,15 @@ class StateModel:
                                         dy = p[1] - self.robotY
                                         if dy < 0:
                                                 addFactor = 180
-                                        angleFromZero = addFactor + math.degrees(math.atan(dx / dy))
+                                        if dy == 0:
+                                            if dx < 0:
+                                                angleFromZero = -90
+                                            else:
+                                                angleFromZero = 90
+                                        else:
+                                            angleFromZero = addFactor + math.degrees(math.atan(dx / dy))
 
                         angle = angleFromZero - self.robotDir
-                        #print( "for some wall: dist = {0} & angle = {1}".format(dist, angle))
                         if dist < minDist:
                                 minDist = dist
                                 minAngle = angle
@@ -252,15 +263,19 @@ def initialize():
         stateModel = StateModel(1, 1, 45, 4, 4, 0.25)
         print("Generating walls...")
         # The walls listed below define the boundaries of the room, which is currently expressed as a 5x5 grid.
-        boundaries = [Wall(0,0,5,0), Wall(5,0,5,5), Wall(5,5,0,5), Wall(0,5,0,0)]
+        boundaries = [Wall(0,5,0,0), Wall(0,0,5,0), Wall(0,5,5,5), Wall(5,5,5,0)]
         for wall in boundaries:
                 stateModel.walls.append(wall)
 
         # For the time being, extra walls must be hard-coded here.
-        # To add a wall, include Wall(x1, x2, y1, y2) in the list assigned to the walls variable.
-        walls = [Wall(2,3,3,2)]
+        # To add a wall, include Wall(x1, y1, x2, y2) in the list assigned to the walls variable.
+        walls = [Wall(1,3,3,1), Wall(3,1,4,3), Wall(4,3,3,4), Wall(3,4,1,3)]    # DANGER
                    #[Wall(2,3,3,2), Wall(2,1,3,2), Wall(4,2,5,3), Wall(3,3,3,4)]
                    #[Wall(1,2,2,3), Wall(3,2,3,3), Wall(3,3,5,3)]
+                   #[Wall(0,5,2,3), Wall(3,5,2,0)]
+                   #[Wall(2,3,3,2)]
+                   #[Wall(0,5,2,3), Wall(3,2,5,0)]
+                   #[Wall(2,0,2,1), Wall(2,1,1,2), Wall(1,2,2,4), Wall(2,4,3,2), Wall(3,2,5,2)]    # DANGER
         for wall in walls:
                 stateModel.walls.append(wall)
 
