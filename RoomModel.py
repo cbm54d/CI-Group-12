@@ -151,7 +151,7 @@ class StateModel:
                                 #print("Wall is perpendicular to the robot")                            # CASE 1s: wall with a vertical (undefined) slope
                                 if wall.x1 == wall.x2: 
                                         dist = abs(self.robotX - wall.x1)
-                                        angleFromZero = 90 if self.robotX > wall.x1 else 270
+                                        angleFromZero = 90 if self.robotX < wall.x1 else 270
 
                                 elif wall.y1 == wall.y2:                                                                # CASE 2s: wall with a horizontal slope
                                         dist = abs(self.robotY - wall.y1)
@@ -162,7 +162,12 @@ class StateModel:
                                         nearestPoint = line_intersect(wall.p1, (self.robotX, self.robotY), slope, perpSlope)
                                         dist = math.sqrt((self.robotX - nearestPoint[0]) ** 2 + (self.robotY - nearestPoint[1]) ** 2)
                                         #print("angle = acos({0})".format(abs(self.robotY - nearestPoint[1])/dist))
-                                        angleFromZero = math.degrees(math.acos((nearestPoint[1] - self.robotY)/dist))
+                                        addFactor = 0
+                                        dx = nearestPoint[0] - self.robotX
+                                        dy = nearestPoint[1] - self.robotY
+                                        if dy < 0:
+                                                addFactor = 180
+                                        angleFromZero = addFactor + math.degrees(math.atan(dx / dy))
 
                         else:                                                                                                           # Case 2: robot is not on perpendicular with the wall
                                 #print("Wall is not perpendicular to the robot")
@@ -177,13 +182,22 @@ class StateModel:
                                 if wall.x1 == self.robotX or wall.x2 == self.robotX:    # CASE 3s: vertical distance vector to wall endpoint
                                         angleFromZero = 180 if self.robotY > wall.y1 else 0
                                 else:
-                                        angleFromZero = math.degrees(math.atan((self.robotX - p[0]) / (self.robotY - p[1])))
+                                        addFactor = 0
+                                        dx = p[0] - self.robotX
+                                        dy = p[1] - self.robotY
+                                        if dy < 0:
+                                                addFactor = 180
+                                        angleFromZero = addFactor + math.degrees(math.atan(dx / dy))
 
                         angle = angleFromZero - self.robotDir
                         #print( "for some wall: dist = {0} & angle = {1}".format(dist, angle))
                         if dist < minDist:
                                 minDist = dist
                                 minAngle = angle
+                        if minAngle > 180:
+                                minAngle = minAngle - 360
+                        elif minAngle < -180:
+                                minAngle = minAngle + 360
 
                 return (minDist, minAngle)
 
@@ -191,7 +205,15 @@ class StateModel:
                 dx = self.goalX - self.robotX
                 dy = self.goalY - self.robotY
                 goalDist = math.sqrt(dx**2 + dy**2)
-                goalAngle = math.degrees(math.atan(dy/dx)) - self.robotDir
+                addFactor = 0
+                if dy < 0:
+                    addFactor = 180
+                angleFromZero = addFactor + math.degrees(math.atan(dx / dy))
+                goalAngle = angleFromZero - self.robotDir
+                if goalAngle > 180:
+                        goalAngle = goalAngle - 360
+                elif goalAngle < -180:
+                        goalAngle = goalAngle + 360
                 return (goalDist, goalAngle)
 
 # The function below comes from https://stackoverflow.com/questions/3252194/numpy-and-line-intersections
