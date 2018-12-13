@@ -40,9 +40,8 @@ class StateModel:
 		lines = []
 		for wall in self.walls:
 			lines.append(wall.all)
-		print lines
+		#print lines
 		c = np.array([(1, 0, 0, 1), (0, 1, 0, 1), (0, 0, 1, 1)])
-		# Later, replace hard-coded "lines" with self.walls *****
 		lc = mc.LineCollection(lines, linewidths=2)
 		fig, ax = plt.subplots()
 		ax.add_collection(lc)
@@ -51,7 +50,7 @@ class StateModel:
 		ax.scatter(self.robotX, self.robotY, color='g')
 		ax.scatter(self.goalX, self.goalY, color='r')
 
-		ax.autoscale()
+		#ax.autoscale()
 		ax.margins(0.1)
 
 		plt.show()
@@ -66,44 +65,93 @@ class StateModel:
 
 			dist = None
 			angle = None
-
-			# TODO: Account for if the line is vertical, making the slope 1/0 *****
-			# Determine if robot is on line perpendicular to wall being assessed
+			perpSlope = None
+			slope = None
 			robotPerpToWall = False
-			slope = (wall.y2 - wall.y1) / (wall.x2 - wall.x1)
-			yIntercept = wall.y1 - (slope * wall.x1)
-			perpSlope = -((wall.x2 - wall.x1) / (wall.y2 - wall.y1))
-			perpYIntercept1 = wall.y1 - (perpSlope * wall.x1)
-			xBound1 = (self.robotY - perpYIntercept1) / perpSlope
-			perpYIntercept2 = wall.y2 - (perpSlope * wall.x2)
-			xBound2 = (self.robotY - perpYIntercept2) / perpSlope
-			print("xBound1 = {0}       xBound2 = {1}".format(xBound1, xBound2))
-			if self.robotX >= xBound1 and self.robotX <= xBound2:
-				robotPerpToWall = True
-			elif self.robotX <= xBound1 and self.robotX >= xBound2:
-				robotPerpToWall = True
 
-			# Case 1: robot is on a perpendicular with the wall
-			if robotPerpToWall:	# First, find point along line nearest the robot (using the perpendicular slope)
-				print("Wall is perpendicular to the robot")
-				perpYInterceptR = self.robotY - (perpSlope * self.robotX)
-				print("perpSlope = {0}".format(perpSlope))
-				print("slope = {0}".format(slope))
-				print("perpYInterceptR = {0}".format(perpYInterceptR))
-				print("yIntercept = {0}".format(yIntercept))
+	# Okay, let's take a moment to think about how this thing should work GIVEN THAT SOME LINES CAN BE VERTICAL.
+	# Vertical lines have an UNDEFINED slope (involves a division by zero), so they cause problems for the program.
+	# Still, if I can properly identify vertical lines/slopes early on, then I can use that property to get the 
+	# information I need without doing any of the computations that could potentially involve a program-ending 
+	# division by zero. So, what are all the cases which may cause this problem?
+	#	CASE 1s: a wall with a vertical slope
+	#		- identifiable by:				wall.x1 == wall.x2
+	#		- mathematical implications:	yBound1 == wall.y1 == yBound2 == wall.y2
+	#		This case is extra tricky because xBounds WON'T WORK. Still, it can easily be determined whether or not the robot 
+	#		is perpendicular to the wall (True) by using the following expression:
+	#				((wall.y1 >= self.robotY and wall.y2 <= self.robotY) and (wall.y1 <= self.robotY and wall.y2 >= self.robotY))
+	#	CASE 2s: a wall with a horizontal slope -> (this causes the perpendicular slope used in calculations to be vertical (_/0))
+	#		- identifiable by:				wall.y1 == wall.y2
+	#		- mathematical implications:	xBound1 == xBound2 == wall.x1 == wall.x2
+	#	CASE 3s: vertical slope (for distance vector) resulting from the robot being directly above/below the nearest endpoint of a wall
+	#		- identifiable by:				wall.x1 == self.robotX or wall.x2 == self.robotX
+	#		- mathematical implications:	angle == 180 or 0 depending on if robot is above or below endpoint in question
+	#		This doesn't screw up the parts of the code that have to do with distance since, in the case where the robot is not on
+	#		a perpendicular with the wall, the pythagorean theorem is all that is required to calculate the distance. However, when
+	#		computing the ANGLE of the nearest point to the robot, a tan(_/0) is used, so this case must still be accounted for.
 
-				#nearestPoint = get_intersect(wall.p1, wall.p2, (self.robotX, self.robotY), (0, perpYInterceptR))
+			# Account for cases which would otherwise involve dividing by zero
+			# CASE 1s: wall with a vertical (undefined) slope
+			if wall.x1 == wall.x2:
+				print "~~! CASE 1s: wall with vertical slope !~~"
+				if self.robotY >= wall.y1 and self.robotY <= wall.y2:
+					robotPerpToWall = True
+				if self.robotY <= wall.y1 and self.robotY >= wall.y2:
+					robotPerpToWall = True
 
-				nearestPoint = line_intersect(wall.p1, (self.robotX, self.robotY), slope, perpSlope)
-
-				# a = np.array([[-perpSlope, 1], [slope, 1]])
-				# b = np.array([perpYInterceptR, yIntercept])
-				# nearestPoint = np.linalg.solve(a, b)			# https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.solve.html
-				dist = math.sqrt((self.robotX - nearestPoint[0]) ** 2 + (self.robotY - nearestPoint[1]) ** 2)
-				angle = math.tan(perpSlope)
+			# CASE 2s: wall with a horizontal slope & vertical (undefined) distance vector
+			elif wall.y1 == wall.y2:
+				print "~~! CASE 2s: wall with horizontal slope !~~"
+				if self.robotX >= wall.x1 and self.robotX <= wall.x2:
+					robotPerpToWall = True
+				if self.robotX <= wall.x1 and self.robotX >= wall.x2:
+					robotPerpToWall = True
 
 			else:
+			# Determine if robot is on line perpendicular to wall being assessed
+				slope = (wall.y2 - wall.y1) / (wall.x2 - wall.x1)
+				yIntercept = wall.y1 - (slope * wall.x1)
+				perpSlope = -((wall.x2 - wall.x1) / (wall.y2 - wall.y1))
+				perpYIntercept1 = wall.y1 - (perpSlope * wall.x1)
+				xBound1 = (self.robotY - perpYIntercept1) / perpSlope
+				perpYIntercept2 = wall.y2 - (perpSlope * wall.x2)
+				xBound2 = (self.robotY - perpYIntercept2) / perpSlope
+				print("xBound1 = {0}       xBound2 = {1}".format(xBound1, xBound2))
+				if self.robotX >= xBound1 and self.robotX <= xBound2:
+					robotPerpToWall = True
+				elif self.robotX <= xBound1 and self.robotX >= xBound2:
+					robotPerpToWall = True
+
+			# Calculate distance from robot to nearest point along wall
+			if robotPerpToWall:											# Case 1: robot is on a perpendicular with the wall
+				print("Wall is perpendicular to the robot")				# CASE 1s: wall with a vertical (undefined) slope
+				if wall.x1 == wall.x2: 
+					dist = abs(self.robotX - wall.x1)
+					angle = 90 if self.robotX > wall.x1 else 270
+
+				elif wall.y1 == wall.y2:								# CASE 2s: wall with a horizontal slope
+					dist = abs(self.robotY - wall.y1)
+					angle = 180 if self.robotY > wall.y1 else 0
+
+				else:
+					perpYInterceptR = self.robotY - (perpSlope * self.robotX)
+					print("perpSlope = {0}".format(perpSlope))
+					print("slope = {0}".format(slope))
+					print("perpYInterceptR = {0}".format(perpYInterceptR))
+					print("yIntercept = {0}".format(yIntercept))
+
+					#nearestPoint = get_intersect(wall.p1, wall.p2, (self.robotX, self.robotY), (0, perpYInterceptR))
+					nearestPoint = line_intersect(wall.p1, (self.robotX, self.robotY), slope, perpSlope)
+
+					# a = np.array([[-perpSlope, 1], [slope, 1]])
+					# b = np.array([perpYInterceptR, yIntercept])
+					# nearestPoint = np.linalg.solve(a, b)			# https://docs.scipy.org/doc/numpy-1.13.0/reference/generated/numpy.linalg.solve.html
+					dist = math.sqrt((self.robotX - nearestPoint[0]) ** 2 + (self.robotY - nearestPoint[1]) ** 2)
+					angle = math.tan(perpSlope)
+
+			else:														# Case 2: robot is not on perpendicular with the wall
 				print("Wall is not perpendicular to the robot")
+
 				dist1 = math.sqrt((self.robotX - wall.x1) ** 2 + (self.robotY - wall.y1) ** 2)
 				dist2 = math.sqrt((self.robotX - wall.x2) ** 2 + (self.robotY - wall.y2) ** 2)
 				dist = min([dist1, dist2])
@@ -111,7 +159,10 @@ class StateModel:
 					p = (wall.x1, wall.y1)
 				else:
 					p = (wall.x2, wall.y2)
-				angle = math.tan((self.robotY - p[1]) / (self.robotX - p[0]))
+				if wall.x1 == self.robotX or wall.x2 == self.robotX:	# CASE 3s: vertical distance vector to wall endpoint
+					angle = 180 if self.robotY > wall.y1 else 0
+				else:
+					angle = math.tan((self.robotY - p[1]) / (self.robotX - p[0]))
 
 			print( "for some wall: dist = {0} & angle = {1}".format(dist, angle))
 			if dist < minDist:
@@ -121,23 +172,7 @@ class StateModel:
 
 		return (minDist, minAngle)
 
-def get_intersect(a1, a2, b1, b2):
-	""" 
-	Returns the point of intersection of the lines passing through a2,a1 and b2,b1.
-	a1: [x, y] a point on the first line
-	a2: [x, y] another point on the first line
-	b1: [x, y] a point on the second line
-	b2: [x, y] another point on the second line
-	"""
-	s = np.vstack([a1,a2,b1,b2])        # s for stacked
-	h = np.hstack((s, np.ones((4, 1)))) # h for homogeneous
-	l1 = np.cross(s[0], s[1])           # get first line
-	l2 = np.cross(s[2], s[3])           # get second line
-	x, y, z = np.cross(l1, l2)          # point of intersection
-	if z == 0:                          # lines are parallel
-			return (float('inf'), float('inf'))
-	return (x/z, y/z)
-
+# The function below comes from https://stackoverflow.com/questions/3252194/numpy-and-line-intersections
 def line_intersect(p0, p1, m0=None, m1=None, q0=None, q1=None):
 	''' intersect 2 lines given 2 points and (either associated slopes or one extra point)
 	Inputs:
@@ -182,40 +217,31 @@ def line_intersect(p0, p1, m0=None, m1=None, q0=None, q1=None):
 
 	return px
 
-# FOR EACH wall:
-#   IF robot is at a location s.t. it lies along a line perpendicular to a wall:
-#     THEN find the point along the wall that is closest to the robot (using appropriate equation)
-#     ELSE find the distances between the robot and each endpoint of the wall (using pythagorean theorem)
-#       IF endpoint 1 is closer, note that it is the closest point to the robot along that wall
-#       ELSE note that endpoint 2 is the closest point to the robot along that wall
-#       IF shortest distance to line is less than previous minimum distance to a wall
-#         THEN set new distance as minimum distance to any wall
-#           (& record point along the wall as the nearest point to the robot - necessary for computing angle.)
-# (Once every wall has been analyzed and the nearest point has been found...)
-# Compute the angle to nearest object based on the point found in the previous section
-
 def main():
 	print("Now starting main...")
 	print("Initializing StateModel object...")
+	# StateModel(robotX, robotY, robotAngle, goalX, goalY)
 	stateModel = StateModel(1, 1, 45, 4, 4)
-	stateModel.displayRoom
+
 	print("Generating walls...")
-	#walls = [[(2,3),(3,2)], [(4,2),(5,3)]]
-	walls = [Wall(2,3,3,2), Wall(4,2,5,3)]
+	# The walls listed below define the boundaries of the room, which is currently expressed as a 5x5 grid.
+	boundaries = [Wall(0,0,5,0), Wall(5,0,5,5), Wall(5,5,0,5), Wall(0,5,0,0)]
+	for wall in boundaries:
+		stateModel.walls.append(wall)
+
+	# For the time being, extra walls must be hard-coded here.
+	# To add a wall, include Wall(x1, x2, y1, y2) in the list assigned to the walls variable.
+	walls = [Wall(1,2,2,3), Wall(3,2,3,3), Wall(3,3,5,3)]
+		   #[Wall(2,3,3,2), Wall(4,2,5,3)]
+	
 	for wall in walls:
 		stateModel.walls.append(wall)
+
 	(dist, angle) = stateModel.computeObjInfo()
 	print("from main:\ndist = {0}\nangle = {1}".format(dist, angle))
 	stateModel.displayRoom()
 
 main()
-
-
-
-
-
-# robotX=0, robotY=0, robotDir=0, goalX=1, goalY=1
-
 
 
 
