@@ -6,10 +6,13 @@ class FuzzySet:
     def __init__(self,
                  membershipFunction: Callable[[float],float],
                  discreteBounds:     Tuple[float,float] = (0,1),
-                 discreteStepLen:    float = 0.1):
+                 discreteStepLen:    float = 0):
         self.membership = membershipFunction
         self.bounds = discreteBounds
-        self.discreteStep = discreteStepLen
+        if discreteStepLen == 0:
+            self.discreteStep = (discreteBounds[1] - discreteBounds[0]) / 25
+        else:
+            self.discreteStep = discreteStepLen
 
     def membership(self, value: float) -> float:
         # The membership function is defined on instantiation
