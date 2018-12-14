@@ -105,7 +105,7 @@ def fuzzyAggregationSum(fuzzySets: List[FuzzySet]) -> FuzzySet:
         return min(sum(map((lambda s: s.membership(x)), fuzzySets)), 1)
     return FuzzySet(membershipFunction, fuzzySets[0].bounds)
 
-def showFuzzySet(fuzzySet: FuzzySet) -> None:
+def showFuzzySet(fuzzySet: FuzzySet, axe = plt):
     x = list()
     y = list()
     i = fuzzySet.bounds[0]
@@ -113,9 +113,7 @@ def showFuzzySet(fuzzySet: FuzzySet) -> None:
         x.append(i)
         y.append(fuzzySet.membership(i))
         i = i + fuzzySet.discreteStep
-    plt.plot(x, y)
-    plt.ylim([0,1.1])
-    plt.show()
+    return axe.plot(x, y)
 
 # Performs centroid defuzzification
 def defuzzify(fuzzySet: FuzzySet) -> float:

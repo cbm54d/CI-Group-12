@@ -1,4 +1,5 @@
 import FuzzyLogic as FL
+import matplotlib.pyplot as plt
 
 # Rules:
 # Inputs:
@@ -73,9 +74,18 @@ class Rule:
         return FL.fuzzyInference(ants, self.consequent, facts)
 
 class RuleBook:
-    def __init__(self, *rules):
+    def __init__(self, *rules, graphing = False):
         self.rules = dict()
         self.addRules(*rules)
+        self.graphing = graphing
+        if graphing:
+            plt.ion()
+            self.fig, self.axes = plt.subplots(1, len(self.rules))
+            i = 0
+            for output in self.rules:
+                self.axes[i].set_title(output)
+                self.axes[i].set_ylim(0,1.1)
+                i += 1
 
     def addRules(self, *rules):
         for rule in rules:
@@ -94,9 +104,15 @@ class RuleBook:
             outputs[key] = list()
             for rule in ruleList:
                 outputs[key].append(rule.apply(**sfz))
+
         aggregation = dict()
+        i = 0
         for output in outputs:
             aggregation[output] = FL.fuzzyAggregationMax(outputs[output])
+            for line in self.axes[i].lines:
+                self.axes[i].lines.remove(line)
+            FL.showFuzzySet(aggregation[output], axe = self.axes[i])
+            i += 1
         defuzzified = dict()
         for aggregate in aggregation:
             defuzzified[aggregate] = FL.defuzzify(aggregation[aggregate])
@@ -112,4 +128,4 @@ rules = [Rule([(FL.fuzzyNot(close), 'objectDistance'), (far, 'goalDistance')], f
          Rule([(close, 'objectDistance'), (right, 'objectAngle'), (inFront, 'objectAngle')], left, 'direction'),
          Rule([(close, 'objectDistance'), (inFront, 'objectAngle')], left, 'direction')]
 
-rulebook = RuleBook(*rules)
+rulebook = RuleBook(*rules, graphing = True)
